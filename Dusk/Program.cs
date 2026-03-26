@@ -1,5 +1,7 @@
 ﻿using System.CommandLine;
+using Dusk.Client;
 using Dusk.Diagnostic;
+using Dusk.Server;
 using Microsoft.Extensions.Logging;
 
 namespace Dusk;
@@ -25,7 +27,7 @@ public class Program
         serveCommand.Options.Add(DebugOutputOption);
         serveCommand.SetAction(parseResult =>
         {
-            // TODO
+            new SocketServer().StartAsync().Wait();
         });
         
         // Create the command for running the client.
@@ -33,7 +35,7 @@ public class Program
         runCommand.Options.Add(DebugOutputOption);
         runCommand.SetAction(parseResult =>
         {
-            // TODO
+            ClientConnection.StartAsync().Wait();
         });
         
         // Create the command for sending the current clipboard to the server.

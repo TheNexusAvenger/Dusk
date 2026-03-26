@@ -66,4 +66,12 @@ public class PacketStream
         }
         return new PacketData((PacketData.PacketType) packetType[0], packetBuffer);
     }
+
+    /// <summary>
+    /// Closes the stream.
+    /// </summary>
+    public void Close()
+    {
+        this._stream.Close();
+    }
 }
