@@ -1,4 +1,6 @@
-﻿namespace Dusk.Clipboard.Windows;
+﻿using System.Text;
+
+namespace Dusk.Clipboard.Windows;
 
 public class WindowsClipboardReaders
 {
@@ -13,8 +15,9 @@ public class WindowsClipboardReaders
         // Must be before CF_TEXT (1), since text has both.
         new WindowsClipboardEntry()
         {
-            MimeType = "text/plain;charset=utf-16le",
+            MimeType = "text/plain;charset=utf-8",
             ClipboardFormat = "CF_UNICODETEXT",
+            Convert = (data) => Encoding.UTF8.GetBytes(Encoding.Unicode.GetString(data)),
         },
         
         // CF_TEXT (1)
