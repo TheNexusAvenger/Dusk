@@ -29,7 +29,7 @@ public interface IClipboard
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            // TODO: Create clipboard using wl-copy/wl-paste.
+            return new LinuxClipboard();
         }
         throw new PlatformNotSupportedException("Clipboard implementation not found for current platform.");
     }
