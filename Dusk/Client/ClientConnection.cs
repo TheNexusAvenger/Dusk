@@ -1,6 +1,8 @@
 ﻿using System.Net.Sockets;
+using Dusk.Clipboard;
 using Dusk.Diagnostic;
 using Dusk.Network;
+using Dusk.Network.Packet;
 using Dusk.Server;
 
 namespace Dusk.Client;
@@ -21,11 +23,12 @@ public class ClientConnection : BaseConnection
     {
         
     }
-    
+
     /// <summary>
-    /// Starts the client.
+    /// Connects a client.
     /// </summary>
-    public static async Task StartAsync() {
+    public static async Task<ClientConnection> ConnectAsync()
+    {
         // Open the connection.
         var settings = await ClientSettings.GetSettingsAsync();
         Logger.Info($"Starting connection to {settings.Connection.Host}:{settings.Connection}");
@@ -37,15 +40,15 @@ public class ClientConnection : BaseConnection
         catch (Exception e)
         {
             Logger.Error($"Failed to connect: {e.Message}");
-            return;
+            throw;
         }
         
         // Send the authentication request.
         var packetStream = new PacketStream(client.GetStream());
         await packetStream.SendAsync(new PacketData(PacketData.PacketType.Authentication, settings.Connection.Secret));
         
-        // Start the connection.
-        new ClientConnection(client, packetStream).Start();
+        // Return the client.
+        return new ClientConnection(client, packetStream);
     }
     
     /// <summary>
@@ -80,6 +83,21 @@ public class ClientConnection : BaseConnection
     /// <param name="packet">Packet to process.</param>
     public override async Task ProcessPacketAsync(PacketData packet)
     {
-        // TODO
+        if (packet.Type == PacketData.PacketType.UpdateClipboard)
+        {
+            // Update the clipboard.
+            var updateClipboardPacket = UpdateClipboardPacket.FromPacket(packet);
+            Logger.Info($"Updating clipboard with MIME type {updateClipboardPacket.MimeType}.");
+            await IClipboard.GetClipboard().WriteClipboardAsync(new ClipboardData()
+            {
+                MimeType = updateClipboardPacket.MimeType,
+                Data = updateClipboardPacket.Data,
+            });
+        }
+        else
+        {
+            // Warn that the packet has no handler.
+            Logger.Warn($"No packet processor for {packet.Type}.");
+        }
     }
 }

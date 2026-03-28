@@ -1,6 +1,8 @@
 ﻿using System.CommandLine;
 using Dusk.Client;
+using Dusk.Clipboard;
 using Dusk.Diagnostic;
+using Dusk.Network.Packet;
 using Dusk.Server;
 using Microsoft.Extensions.Logging;
 
@@ -25,25 +27,41 @@ public class Program
         // Create the command for running the server.
         var serveCommand = new Command("serve", description: "Runs the server.");
         serveCommand.Options.Add(DebugOutputOption);
-        serveCommand.SetAction(parseResult =>
+        serveCommand.SetAction(async parseResult =>
         {
-            new SocketServer().StartAsync().Wait();
+            await new SocketServer().StartAsync();
         });
         
         // Create the command for running the client.
         var runCommand = new Command("run", description: "Runs the client.");
         runCommand.Options.Add(DebugOutputOption);
-        runCommand.SetAction(parseResult =>
+        runCommand.SetAction(async parseResult =>
         {
-            ClientConnection.StartAsync().Wait();
+            (await ClientConnection.ConnectAsync()).Start();
         });
         
         // Create the command for sending the current clipboard to the server.
         var sendClipboardCommand = new Command("send-clipboard", description: "Sends the current clipboard to the server.");
         sendClipboardCommand.Options.Add(DebugOutputOption);
-        sendClipboardCommand.SetAction(parseResult =>
+        sendClipboardCommand.SetAction(async parseResult =>
         {
-            // TODO
+            // Open the connection.
+            var client = await ClientConnection.ConnectAsync();
+            
+            // Send the clipboard.
+            var clipboard = IClipboard.GetClipboard();
+            var clipboardData = await clipboard.ReadClipboardAsync();
+            if (clipboardData == null)
+            {
+                Logger.Error("Clipboard read failed.");
+                return;
+            }
+            Logger.Info($"Sending clipboard with MIME type {clipboardData.MimeType}.");
+            await client.TrySendPacketAsync(new UpdateClipboardPacket()
+            {
+                MimeType = clipboardData.MimeType,
+                Data = clipboardData.Data,
+            }.ToPacketData());
         });
         
         // Create the root command.
