@@ -49,6 +49,26 @@ public abstract class BaseConnection
         this.Stream.Close();
         this.OnClose();
     }
+
+    /// <summary>
+    /// Tries to send a packet. Returns if it was successful.
+    /// Disconnects the client if it fails.
+    /// </summary>
+    /// <param name="packet">Packet to send.</param>
+    /// <returns>Whether the packet was sent.</returns>
+    public async Task<bool> TrySendPacketAsync(PacketData packet)
+    {
+        try
+        {
+            await this.Stream.SendAsync(packet);
+            return true;
+        }
+        catch (Exception)
+        {
+            this.Close();
+            return false;
+        }
+    }
     
     /// <summary>
     /// Starts handling the connection.
@@ -72,11 +92,11 @@ public abstract class BaseConnection
                     {
                         Logger.Debug($"Sending ping response to connection {this.Id}.");
                         this.MissedPingResponses = 0;
-                        await this.Stream.SendAsync(new PacketData(PacketData.PacketType.PingResponse));
+                        await TrySendPacketAsync(new PacketData(PacketData.PacketType.PingResponse));
                     }
                     else if (request.Type != PacketData.PacketType.PingResponse)
                     {
-                        // TODO: Handle request.
+                        await this.ProcessPacketAsync(request);
                     }
                 }
             }
@@ -90,30 +110,22 @@ public abstract class BaseConnection
         // Send ping requests.
         var pingTask = Task.Run(async () =>
         {
-            try
+            while (this.IsActive())
             {
-                while (this.IsActive())
+                // Close the connection if no ping responses were returned recently.
+                var pingSettings = await this.GetPingSettingsAsync();
+                if (this.MissedPingResponses >= pingSettings.MissedPingRequestsDisconnect)
                 {
-                    // Close the connection if no ping responses were returned recently.
-                    var pingSettings = await this.GetPingSettingsAsync();
-                    if (this.MissedPingResponses >= pingSettings.MissedPingRequestsDisconnect)
-                    {
-                        Logger.Warn($"Disconnecting client {this.Id} due to {this.MissedPingResponses} missed ping responses.");
-                        this.Close();
-                        break;
-                    }
-                    
-                    // Send the new request and wait to try again.
-                    Logger.Debug($"Sending ping request to connection {this.Id}.");
-                    this.MissedPingResponses += 1;
-                    await this.Stream.SendAsync(new PacketData(PacketData.PacketType.PingSend));
-                    await Task.Delay(TimeSpan.FromSeconds(pingSettings.PingInterval));
+                    Logger.Warn($"Disconnecting client {this.Id} due to {this.MissedPingResponses} missed ping responses.");
+                    this.Close();
+                    break;
                 }
-            }
-            catch (Exception)
-            {
-                // Close the connection on any exception.
-                this.Close();
+                
+                // Send the new request and wait to try again.
+                Logger.Debug($"Sending ping request to connection {this.Id}.");
+                this.MissedPingResponses += 1;
+                await TrySendPacketAsync(new PacketData(PacketData.PacketType.PingSend));
+                await Task.Delay(TimeSpan.FromSeconds(pingSettings.PingInterval));
             }
         });
         
@@ -138,4 +150,10 @@ public abstract class BaseConnection
     /// Handles the connection being closed.
     /// </summary>
     public abstract void OnClose();
+    
+    /// <summary>
+    /// Process a packet.
+    /// </summary>
+    /// <param name="packet">Packet to process.</param>
+    public abstract Task ProcessPacketAsync(PacketData packet);
 }

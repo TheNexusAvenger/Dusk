@@ -1,4 +1,5 @@
 ﻿using System.Net.Sockets;
+using Dusk.Diagnostic;
 using Dusk.Network;
 using Dusk.Server.Model;
 
@@ -47,5 +48,30 @@ public class ServerDomainConnection : BaseConnection
     public override void OnClose()
     {
         this.ServerDomain.Connections.Remove(this.Id);
+    }
+
+    /// <summary>
+    /// Process a packet.
+    /// </summary>
+    /// <param name="packet">Packet to process.</param>
+    public override async Task ProcessPacketAsync(PacketData packet)
+    {
+        if (packet.Type == PacketData.PacketType.UpdateClipboard)
+        {
+            // Replicate the clipboard to the other clients.
+            Logger.Info($"Replicating clipboard in domain {this.ServerDomain.Name}.");
+            var replicationTasks = new List<Task>();
+            foreach (var connection in this.ServerDomain.Connections.Values)
+            {
+                if (connection.Id == this.Id) continue;
+                replicationTasks.Add(connection.TrySendPacketAsync(packet));
+            }
+            await Task.WhenAll(replicationTasks);
+        }
+        else
+        {
+            // Warn that the packet has no handler.
+            Logger.Warn($"No packet processor for {packet.Type}.");
+        }
     }
 }

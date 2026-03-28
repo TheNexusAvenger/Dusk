@@ -73,4 +73,13 @@ public class ClientConnection : BaseConnection
     {
         this._active = false;
     }
+
+    /// <summary>
+    /// Process a packet.
+    /// </summary>
+    /// <param name="packet">Packet to process.</param>
+    public override async Task ProcessPacketAsync(PacketData packet)
+    {
+        // TODO
+    }
 }

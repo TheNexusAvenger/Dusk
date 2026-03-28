@@ -85,7 +85,10 @@ public class SocketServer
         // Create the domain if it doesn't exist.
         if (!this._domains.ContainsKey(domain.Name))
         {
-            this._domains[domain.Name] = new ServerDomain();
+            this._domains[domain.Name] = new ServerDomain()
+            {
+                Name = domain.Name,
+            };
         }
         
         // Store and start the connection.
