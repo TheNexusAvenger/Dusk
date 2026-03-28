@@ -17,9 +17,10 @@ public class ClientConnection : BaseConnection
     /// <summary>
     /// Creates a client connection.
     /// </summary>
+    /// <param name="id">Id of the connection.</param>
     /// <param name="client">TCP client of the connection.</param>
     /// <param name="stream">Packet stream of the connection.</param>
-    public ClientConnection(TcpClient client, PacketStream stream) : base(Guid.NewGuid().ToString(), client, stream)
+    public ClientConnection(string id, TcpClient client, PacketStream stream) : base(Guid.NewGuid().ToString(), client, stream)
     {
         
     }
@@ -47,8 +48,18 @@ public class ClientConnection : BaseConnection
         var packetStream = new PacketStream(client.GetStream());
         await packetStream.SendAsync(new PacketData(PacketData.PacketType.Authentication, settings.Connection.Secret));
         
+        // Wait for the connection id.
+        var connectionIdResponse = await packetStream.ReceiveAsync();
+        if (connectionIdResponse.Type != PacketData.PacketType.Authenticated)
+        {
+            Logger.Error($"Received unexpected packet type {connectionIdResponse.Type}.");
+            throw new InvalidDataException($"Received unexpected packet type {connectionIdResponse.Type}.");
+        }
+        var connectionId = AuthenticatedPacket.FromPacket(connectionIdResponse).ConnectionId;
+        Logger.Debug($"Connected as connection {connectionId}.");
+        
         // Return the client.
-        return new ClientConnection(client, packetStream);
+        return new ClientConnection(connectionId, client, packetStream);
     }
     
     /// <summary>

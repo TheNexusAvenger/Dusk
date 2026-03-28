@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using Dusk.Diagnostic;
 using Dusk.Network;
+using Dusk.Network.Packet;
 using Dusk.Server.Model;
 using Dusk.Server.Network;
 
@@ -58,8 +59,8 @@ public class SocketServer
     private async Task ProcessConnectionAsync(TcpClient client)
     {
         // Read the secret from the client.
-        var clientId = Guid.NewGuid().ToString();
-        Logger.Debug($"Accepting new connection {clientId}.");
+        var connectionId = Guid.NewGuid().ToString();
+        Logger.Debug($"Accepting new connection {connectionId}.");
         var settings = await ServerSettings.GetSettingsAsync();
         var stream = client.GetStream();
         var packetStream = new PacketStream(stream);
@@ -67,7 +68,7 @@ public class SocketServer
         var authenticationPacket = await packetStream.ReceiveAsync(maxSecretSize);
         if (authenticationPacket.Type != PacketData.PacketType.Authentication)
         {
-            Logger.Debug($"Disconnecting {clientId} due to wrong packet type.");
+            Logger.Debug($"Disconnecting {connectionId} due to wrong packet type.");
             client.Close();
             return;
         }
@@ -76,11 +77,11 @@ public class SocketServer
         var domain = settings.Domains.FirstOrDefault(domain => domain.Secret == authenticationPacket.StringPayload);
         if (domain == null)
         {
-            Logger.Warn($"Disconnecting {clientId} due to incorrect secret.");
+            Logger.Warn($"Disconnecting {connectionId} due to incorrect secret.");
             client.Close();
             return;
         }
-        Logger.Debug($"Client {clientId} connected to domain {domain.Name}.");
+        Logger.Debug($"Client {connectionId} connected to domain {domain.Name}.");
         
         // Create the domain if it doesn't exist.
         if (!this._domains.ContainsKey(domain.Name))
@@ -91,10 +92,18 @@ public class SocketServer
             };
         }
         
-        // Store and start the connection.
+        // Store the connection.
         var serverDomain = this._domains[domain.Name];
-        var serverDomainConnection = new ServerDomainConnection(serverDomain, clientId, client, packetStream);
-        serverDomain.Connections[clientId] = serverDomainConnection;
+        var serverDomainConnection = new ServerDomainConnection(serverDomain, connectionId, client, packetStream);
+        serverDomain.Connections[connectionId] = serverDomainConnection;
+        
+        // Send the connection id.
+        await packetStream.SendAsync(new AuthenticatedPacket()
+        {
+            ConnectionId = connectionId,
+        }.ToPacketData());
+        
+        // Start sending pin requests and listening for packets.
         serverDomainConnection.Start();
     }
 }
