@@ -10,11 +10,13 @@ public class UpdateClipboardPacketTest
     {
         var packet = new UpdateClipboardPacket()
         {
+            SourceConnectionId = "TestConnectionId",
             MimeType = "text/plain",
             Data = Encoding.UTF8.GetBytes("Test string"),
         };
         
         var newPacket = UpdateClipboardPacket.FromPacket(packet.ToPacketData());
+        Assert.That(newPacket.SourceConnectionId, Is.EqualTo("TestConnectionId"));
         Assert.That(newPacket.MimeType, Is.EqualTo("text/plain"));
         Assert.That(newPacket.Data, Is.EqualTo(Encoding.UTF8.GetBytes("Test string")));
     }

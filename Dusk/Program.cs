@@ -2,6 +2,7 @@
 using Dusk.Client;
 using Dusk.Clipboard;
 using Dusk.Diagnostic;
+using Dusk.Network;
 using Dusk.Network.Packet;
 using Dusk.Server;
 using Microsoft.Extensions.Logging;
@@ -41,12 +42,19 @@ public class Program
         });
         
         // Create the command for sending the current clipboard to the server.
+        var sendClipboardConnectionIdArgument = new Argument<string>("connectionId")
+        {
+            Description = "Id of the connection sending the clipboard data.",
+            Arity = ArgumentArity.ExactlyOne,
+        };
+        
         var sendClipboardCommand = new Command("send-clipboard", description: "Sends the current clipboard to the server.");
         sendClipboardCommand.Options.Add(DebugOutputOption);
+        sendClipboardCommand.Arguments.Add(sendClipboardConnectionIdArgument);
         sendClipboardCommand.SetAction(async parseResult =>
         {
             // Open the connection.
-            var client = await ClientConnection.ConnectAsync();
+            var client = await ClientConnection.ConnectAsync(PacketData.PacketType.AuthenticationShortLived);
             
             // Send the clipboard.
             var clipboard = IClipboard.GetClipboard();
@@ -59,6 +67,7 @@ public class Program
             Logger.Info($"Sending clipboard with MIME type {clipboardData.MimeType}.");
             await client.TrySendPacketAsync(new UpdateClipboardPacket()
             {
+                SourceConnectionId = parseResult.GetValue(sendClipboardConnectionIdArgument)!,
                 MimeType = clipboardData.MimeType,
                 Data = clipboardData.Data,
             }.ToPacketData());

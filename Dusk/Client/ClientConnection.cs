@@ -20,7 +20,7 @@ public class ClientConnection : BaseConnection
     /// <param name="id">Id of the connection.</param>
     /// <param name="client">TCP client of the connection.</param>
     /// <param name="stream">Packet stream of the connection.</param>
-    public ClientConnection(string id, TcpClient client, PacketStream stream) : base(Guid.NewGuid().ToString(), client, stream)
+    public ClientConnection(string id, TcpClient client, PacketStream stream) : base(id, client, stream)
     {
         
     }
@@ -28,7 +28,8 @@ public class ClientConnection : BaseConnection
     /// <summary>
     /// Connects a client.
     /// </summary>
-    public static async Task<ClientConnection> ConnectAsync()
+    /// <param name="authenticationType">Type of the authentication to connect with.</param>
+    public static async Task<ClientConnection> ConnectAsync(PacketData.PacketType authenticationType = PacketData.PacketType.Authentication)
     {
         // Open the connection.
         var settings = await ClientSettings.GetSettingsAsync();
@@ -46,7 +47,7 @@ public class ClientConnection : BaseConnection
         
         // Send the authentication request.
         var packetStream = new PacketStream(client.GetStream());
-        await packetStream.SendAsync(new PacketData(PacketData.PacketType.Authentication, settings.Connection.Secret));
+        await packetStream.SendAsync(new PacketData(authenticationType, settings.Connection.Secret));
         
         // Wait for the connection id.
         var connectionIdResponse = await packetStream.ReceiveAsync();

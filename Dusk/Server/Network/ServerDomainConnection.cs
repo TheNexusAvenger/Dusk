@@ -1,6 +1,7 @@
 ﻿using System.Net.Sockets;
 using Dusk.Diagnostic;
 using Dusk.Network;
+using Dusk.Network.Packet;
 using Dusk.Server.Model;
 
 namespace Dusk.Server.Network;
@@ -58,12 +59,20 @@ public class ServerDomainConnection : BaseConnection
     {
         if (packet.Type == PacketData.PacketType.UpdateClipboard)
         {
+            // Warn if the source connection id doesn't exist.
+            var updateClipboardPacket = UpdateClipboardPacket.FromPacket(packet);
+            var sourceConnectionId = updateClipboardPacket.SourceConnectionId;
+            Logger.Info($"Replicating clipboard in domain {this.ServerDomain.Name} from connection {updateClipboardPacket.SourceConnectionId}.");
+            if (!this.ServerDomain.Connections.ContainsKey(sourceConnectionId))
+            {
+                Logger.Warn($"Connection {sourceConnectionId} sent an updated clipboard for {this.ServerDomain.Name}, but the connection does not exist. This might cause clipboard setting loopback.");
+            }
+            
             // Replicate the clipboard to the other clients.
-            Logger.Info($"Replicating clipboard in domain {this.ServerDomain.Name}.");
             var replicationTasks = new List<Task>();
             foreach (var connection in this.ServerDomain.Connections.Values)
             {
-                if (connection.Id == this.Id) continue;
+                if (connection.Id == sourceConnectionId) continue;
                 replicationTasks.Add(connection.TrySendPacketAsync(packet));
             }
             await Task.WhenAll(replicationTasks);

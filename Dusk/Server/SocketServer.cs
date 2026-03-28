@@ -66,7 +66,7 @@ public class SocketServer
         var packetStream = new PacketStream(stream);
         var maxSecretSize = settings.Domains.Max(domain => domain.Secret.Length);
         var authenticationPacket = await packetStream.ReceiveAsync(maxSecretSize);
-        if (authenticationPacket.Type != PacketData.PacketType.Authentication)
+        if (authenticationPacket.Type != PacketData.PacketType.Authentication && authenticationPacket.Type != PacketData.PacketType.AuthenticationShortLived)
         {
             Logger.Debug($"Disconnecting {connectionId} due to wrong packet type.");
             client.Close();
@@ -81,7 +81,7 @@ public class SocketServer
             client.Close();
             return;
         }
-        Logger.Debug($"Client {connectionId} connected to domain {domain.Name}.");
+        Logger.Debug($"Client {connectionId} connected to domain {domain.Name} ({authenticationPacket.Type}).");
         
         // Create the domain if it doesn't exist.
         if (!this._domains.ContainsKey(domain.Name))
@@ -102,6 +102,15 @@ public class SocketServer
         {
             ConnectionId = connectionId,
         }.ToPacketData());
+        
+        // Close the connection after processing a single packet if it is short-lived.
+        if (authenticationPacket.Type == PacketData.PacketType.AuthenticationShortLived)
+        {
+            var packet = await packetStream.ReceiveAsync();
+            await serverDomainConnection.ProcessPacketAsync(packet);
+            serverDomainConnection.Close();
+            return;
+        }
         
         // Start sending pin requests and listening for packets.
         serverDomainConnection.Start();

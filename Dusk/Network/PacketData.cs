@@ -7,6 +7,7 @@ public class PacketData
     public enum PacketType
     {
         Authentication,
+        AuthenticationShortLived,
         Authenticated,
         PingSend,
         PingResponse,
