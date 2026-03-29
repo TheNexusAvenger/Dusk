@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using Dusk.Configuration;
 using Dusk.Diagnostic;
 using Dusk.Network;
 using Dusk.Network.Packet;
@@ -25,9 +26,9 @@ public class SocketServer
     /// </summary>
     public SocketServer()
     {
-        var settings = ServerSettings.GetSettingsAsync().Result;
-        Logger.Info($"Accepting connections on port {settings.Port}.");
-        this._listener = new TcpListener(IPAddress.Any, settings.Port);
+        var configuration = ServerConfiguration.State.CurrentConfiguration!;
+        Logger.Info($"Accepting connections on port {configuration.Port}.");
+        this._listener = new TcpListener(IPAddress.Any, configuration.Port);
     }
         
     /// <summary>
@@ -61,10 +62,10 @@ public class SocketServer
         // Read the secret from the client.
         var connectionId = Guid.NewGuid().ToString();
         Logger.Debug($"Accepting new connection {connectionId}.");
-        var settings = await ServerSettings.GetSettingsAsync();
+        var configuration = ServerConfiguration.State.CurrentConfiguration!;
         var stream = client.GetStream();
         var packetStream = new PacketStream(stream);
-        var maxSecretSize = settings.Domains.Max(domain => domain.Secret.Length);
+        var maxSecretSize = configuration.Domains.Max(domain => domain.Secret.Length);
         var authenticationPacket = await packetStream.ReceiveAsync(maxSecretSize);
         if (authenticationPacket.Type != PacketData.PacketType.Authentication && authenticationPacket.Type != PacketData.PacketType.AuthenticationShortLived)
         {
@@ -74,7 +75,7 @@ public class SocketServer
         }
         
         // Disconnect the client if the secret doesn't match any domain.
-        var domain = settings.Domains.FirstOrDefault(domain => domain.Secret == authenticationPacket.StringPayload);
+        var domain = configuration.Domains.FirstOrDefault(domain => domain.Secret == authenticationPacket.StringPayload);
         if (domain == null)
         {
             Logger.Warn($"Disconnecting {connectionId} due to incorrect secret.");

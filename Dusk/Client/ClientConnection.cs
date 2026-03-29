@@ -1,9 +1,9 @@
 ﻿using System.Net.Sockets;
 using Dusk.Clipboard;
+using Dusk.Configuration;
 using Dusk.Diagnostic;
 using Dusk.Network;
 using Dusk.Network.Packet;
-using Dusk.Server;
 
 namespace Dusk.Client;
 
@@ -32,12 +32,12 @@ public class ClientConnection : BaseConnection
     public static async Task<ClientConnection> ConnectAsync(PacketData.PacketType authenticationType = PacketData.PacketType.Authentication)
     {
         // Open the connection.
-        var settings = await ClientSettings.GetSettingsAsync();
-        Logger.Info($"Starting connection to {settings.Connection.Host}:{settings.Connection}");
+        var configuration = ClientConfiguration.State.CurrentConfiguration!;
+        Logger.Info($"Starting connection to {configuration.Connection.Host}:{configuration.Connection}");
         TcpClient? client = null;
         try
         {
-            client = new TcpClient(settings.Connection.Host, settings.Connection.Port);
+            client = new TcpClient(configuration.Connection.Host, configuration.Connection.Port);
         }
         catch (Exception e)
         {
@@ -47,7 +47,7 @@ public class ClientConnection : BaseConnection
         
         // Send the authentication request.
         var packetStream = new PacketStream(client.GetStream());
-        await packetStream.SendAsync(new PacketData(authenticationType, settings.Connection.Secret));
+        await packetStream.SendAsync(new PacketData(authenticationType, configuration.Connection.Secret));
         
         // Wait for the connection id.
         var connectionIdResponse = await packetStream.ReceiveAsync();
@@ -62,14 +62,14 @@ public class ClientConnection : BaseConnection
         // Return the client.
         return new ClientConnection(connectionId, client, packetStream);
     }
-    
+
     /// <summary>
-    /// Returns the ping settings to use.
+    /// Returns the ping configuration to use.
     /// </summary>
-    /// <returns>Ping settings for the connection.</returns>
-    public override async Task<ServerSettings.PingSettings> GetPingSettingsAsync()
+    /// <returns>Ping configuration for the connection.</returns>
+    public override BaseConfiguration.PingConfiguration GetPingConfiguration()
     {
-        return (await ClientSettings.GetSettingsAsync()).Ping;
+        return ClientConfiguration.State.CurrentConfiguration!.Ping;
     }
 
     /// <summary>

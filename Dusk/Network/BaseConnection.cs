@@ -1,4 +1,5 @@
 ﻿using System.Net.Sockets;
+using Dusk.Configuration;
 using Dusk.Diagnostic;
 using Dusk.Server;
 
@@ -113,8 +114,8 @@ public abstract class BaseConnection
             while (this.IsActive())
             {
                 // Close the connection if no ping responses were returned recently.
-                var pingSettings = await this.GetPingSettingsAsync();
-                if (this.MissedPingResponses >= pingSettings.MissedPingRequestsDisconnect)
+                var pingConfiguration = this.GetPingConfiguration();
+                if (this.MissedPingResponses >= pingConfiguration.MissedPingRequestsDisconnect)
                 {
                     Logger.Warn($"Disconnecting client {this.Id} due to {this.MissedPingResponses} missed ping responses.");
                     this.Close();
@@ -125,7 +126,7 @@ public abstract class BaseConnection
                 Logger.Debug($"Sending ping request to connection {this.Id}.");
                 this.MissedPingResponses += 1;
                 await TrySendPacketAsync(new PacketData(PacketData.PacketType.PingSend));
-                await Task.Delay(TimeSpan.FromSeconds(pingSettings.PingInterval));
+                await Task.Delay(TimeSpan.FromSeconds(pingConfiguration.PingInterval));
             }
         });
         
@@ -135,10 +136,10 @@ public abstract class BaseConnection
     }
     
     /// <summary>
-    /// Returns the ping settings to use.
+    /// Returns the ping configuration to use.
     /// </summary>
-    /// <returns>Ping settings for the connection.</returns>
-    public abstract Task<ServerSettings.PingSettings> GetPingSettingsAsync();
+    /// <returns>Ping configuration for the connection.</returns>
+    public abstract BaseConfiguration.PingConfiguration GetPingConfiguration();
     
     /// <summary>
     /// Returns if the connection is active.

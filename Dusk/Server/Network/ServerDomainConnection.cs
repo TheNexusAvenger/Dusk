@@ -1,4 +1,5 @@
 ﻿using System.Net.Sockets;
+using Dusk.Configuration;
 using Dusk.Diagnostic;
 using Dusk.Network;
 using Dusk.Network.Packet;
@@ -24,14 +25,14 @@ public class ServerDomainConnection : BaseConnection
     {
         this.ServerDomain = serverDomain;
     }
-
+    
     /// <summary>
-    /// Returns the ping settings to use.
+    /// Returns the ping configuration to use.
     /// </summary>
-    /// <returns>Ping settings for the connection.</returns>
-    public override async Task<ServerSettings.PingSettings> GetPingSettingsAsync()
+    /// <returns>Ping configuration for the connection.</returns>
+    public override BaseConfiguration.PingConfiguration GetPingConfiguration()
     {
-        return (await ServerSettings.GetSettingsAsync()).Ping;
+        return ServerConfiguration.State.CurrentConfiguration!.Ping;
     }
 
     /// <summary>
