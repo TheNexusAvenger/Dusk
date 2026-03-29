@@ -1,6 +1,5 @@
 ﻿using System.Net.Mime;
 using System.Text;
-using Dusk.Diagnostic;
 
 namespace Dusk.Clipboard.Windows;
 
@@ -43,18 +42,10 @@ public class WindowsClipboardWriters
             Convert = (data, contentType) =>
             {
                 // Decode the string.
-                // Since the source will use UTF-16be but won't state it, it must be converted to UTF-16be (instead of UTF-16le).
                 var encoding = Encoding.GetEncoding(contentType.CharSet ?? "utf-8");
-                string inputString = null!;
-                if (encoding.EncodingName == "Unicode" && data[0] == 0xFE && data[1] == 0xFF)
-                {
-                    Logger.Debug("Using UTF-16le instead of detected UTF-16be.");
-                    inputString = Encoding.BigEndianUnicode.GetString(data, 2, data.Length - 2);
-                }
-                else
-                {
-                    inputString = encoding.GetString(data);
-                }
+                using var stream = new MemoryStream(data);
+                using var reader = new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: true);
+                var inputString = reader.ReadToEnd();
                 
                 // Convert from the source encoding and to UTF-16le.
                 return Encoding.Unicode.GetBytes(inputString).Concat(new byte[2]).ToArray();
