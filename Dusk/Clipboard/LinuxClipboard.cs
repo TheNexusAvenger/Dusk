@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Net.Mime;
 using System.Text;
 using Dusk.Diagnostic;
 
@@ -6,6 +7,14 @@ namespace Dusk.Clipboard;
 
 public class LinuxClipboard : IClipboard
 {
+    /// <summary>
+    /// MIME types by priority.
+    /// </summary>
+    public static readonly List<string> PriorityMimeTypes = new List<string>()
+    {
+        "text/plain", // Priority over text/html
+    };
+    
     /// <summary>
     /// Path to the wl-copy command.
     /// </summary>
@@ -72,12 +81,33 @@ public class LinuxClipboard : IClipboard
             return null;
         }
         
+        // Set the priority MIME type if one exists.
+        foreach (var priorityMimeType in PriorityMimeTypes)
+        {
+            foreach (var clipboardMimeType in mimeTypes)
+            {
+                try
+                {
+                    var contentType = new ContentType(clipboardMimeType);
+                    if (contentType.MediaType != priorityMimeType) continue;
+                    Logger.Debug($"Using priority MIME type: {clipboardMimeType}");
+                    mimeType = clipboardMimeType;
+                    break;
+                }
+                catch (FormatException)
+                {
+                    // MIME type invalid.
+                }
+            }
+        }
+        
         // Read and return the clipboard data.
         Logger.Debug($"Reading clipboard with MIME type: {mimeType}");
+        var data = await RunWlPaste($"--no-newline --type {mimeType}");
         return new ClipboardData()
         {
             MimeType = mimeType,
-            Data = await RunWlPaste($"--no-newline --type {mimeType}"),
+            Data = data,
         };
     }
 
