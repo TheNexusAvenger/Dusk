@@ -1,0 +1,13 @@
+services:
+  dusk:
+    container_name: Dusk
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: always
+    environment:
+     - DUSK_CONFIGURATION_DIRECTORY=/configuration/configuration.json
+    ports:
+      - 23594:23594
+    volumes:
+      - ./configuration:/configuration
