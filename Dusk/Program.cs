@@ -59,6 +59,10 @@ public class Program
                 MimeType = clipboardData.MimeType,
                 Data = clipboardData.Data,
             }.ToPacketData());
+            
+            // Keep the connection alive until complete.
+            await client.Stream.ReceiveAsync();
+            client.Close();
         });
         
         // Create the root command.
