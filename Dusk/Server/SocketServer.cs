@@ -115,6 +115,6 @@ public class SocketServer
         }
         
         // Start sending pin requests and listening for packets.
-        serverDomainConnection.Start();
+        await serverDomainConnection.StartAsync();
     }
 }

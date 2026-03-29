@@ -88,6 +88,17 @@ public class Logger
     {
         NexusLogger.Error(content);
     }
+
+    /// <summary>
+    /// Logs a message as the given level.
+    /// </summary>
+    /// <param name="logLevel">Log level to log with.</param>
+    /// <param name="content">Content to log. Can be an object, like an exception.</param>
+    [LogTraceIgnore]
+    public static void Log(LogLevel logLevel, object content)
+    {
+        NexusLogger.Log(content, logLevel);
+    }
     
     /// <summary>
     /// Waits for all loggers to finish processing logs.

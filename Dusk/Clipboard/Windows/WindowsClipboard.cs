@@ -2,7 +2,10 @@
 using System.Net.Mime;
 using System.Runtime.InteropServices;
 using System.Text;
+using Dusk.Client;
 using Dusk.Diagnostic;
+using Dusk.Network.Packet;
+using Microsoft.Extensions.Logging;
 
 namespace Dusk.Clipboard.Windows;
 
@@ -35,8 +38,9 @@ public class WindowsClipboard : IClipboard
     /// <summary>
     /// Reads the current clipboard.
     /// </summary>
+    /// <param name="debugLogLevel">Optional log level for the debug log messages.</param>
     /// <returns>Contents of the clipboard.</returns>
-    public async Task<ClipboardData?> ReadClipboardAsync()
+    public async Task<ClipboardData?> ReadClipboardAsync(LogLevel debugLogLevel = LogLevel.Debug)
     {
         // Open the clipboard.
         await TryOpenClipboardAsync();
@@ -49,14 +53,18 @@ public class WindowsClipboard : IClipboard
             // Get the clipboard formats.
             var clipboardFormats = GetClipboardFormats();
             var clipboardFormatsString = string.Join(", ", clipboardFormats.Select(entry => $"{entry.Value} ({entry.Key})").ToList());
-            Logger.Debug($"Reading clipboard with formats: {clipboardFormatsString}");
+            Logger.Log(debugLogLevel, $"Reading clipboard with formats: {clipboardFormatsString}");
             
             // Get the clipboard reader.
             var clipboardReader = WindowsClipboardReaders.ClipboardReaders.FirstOrDefault(reader =>
                 clipboardFormats.ContainsValue(reader.ClipboardFormat));
             if (clipboardReader == null)
             {
-                Logger.Warn($"No clipboard reader found for formats: {clipboardFormatsString}");
+                if (debugLogLevel == LogLevel.Debug)
+                {
+                    // Log a warning when in debug mode (not trace from the WindowsClipboard monitoring).
+                    Logger.Warn($"No clipboard reader found for formats: {clipboardFormatsString}");
+                }
                 return new ClipboardData()
                 {
                     MimeType = "text/plain;charset=utf-8",
@@ -108,7 +116,7 @@ public class WindowsClipboard : IClipboard
     /// <summary>
     /// Writes the current clipboard.
     /// </summary>
-    /// <param name="data">Contents of the clipboard</param>
+    /// <param name="data">Contents of the clipboard.</param>
     public async Task WriteClipboardAsync(ClipboardData data)
     {
         // Open the clipboard.
@@ -187,6 +195,47 @@ public class WindowsClipboard : IClipboard
                 Marshal.FreeHGlobal(dataGlobal);
             }
             CloseClipboard();
+        }
+    }
+
+    /// <summary>
+    /// Listens for clipboard changes.
+    /// </summary>
+    /// <param name="clientConnection">Client connection to send clipboard updates for.</param>
+    public async Task MonitorClipboardChangesAsync(ClientConnection clientConnection)
+    {
+        // Get the initial clipboard.
+        var lastClipboard = await this.ReadClipboardAsync(LogLevel.Trace);
+        
+        // Run a busy-wait loop to check the clipboard.
+        // This isn't optimal, but avoids needing to create a window.
+        while (true)
+        {
+            // Wait to check again.
+            await Task.Delay(100);
+            
+            // Try to read the clipboard.
+            try
+            {
+                // Read the clipboard.
+                var currentClipboard = await this.ReadClipboardAsync(LogLevel.Trace);
+                if (currentClipboard == null) continue;
+                if (lastClipboard != null && lastClipboard.MimeType == currentClipboard.MimeType && currentClipboard.Data.SequenceEqual(lastClipboard.Data)) continue;
+                Logger.Debug($"Clipboard change detected. Sending clipboard contents with MIME type {currentClipboard.MimeType}.");
+                lastClipboard = currentClipboard;
+
+                // Send the updated clipboard.
+                await clientConnection.TrySendPacketAsync(new UpdateClipboardPacket()
+                {
+                    SourceConnectionId = clientConnection.Id,
+                    MimeType = currentClipboard.MimeType,
+                    Data = currentClipboard.Data,
+                }.ToPacketData());
+            }
+            catch (Exception e)
+            {
+                Logger.Debug($"Error reading clipboard for changes: {e}");
+            }
         }
     }
     

@@ -27,7 +27,10 @@ public class Program
         var runCommand = new Command("run", description: "Runs the client.");
         runCommand.SetAction(async parseResult =>
         {
-            (await ClientConnection.ConnectAsync()).Start();
+            var connection = await ClientConnection.ConnectAsync();
+            var clipboardTask = IClipboard.GetClipboard().MonitorClipboardChangesAsync(connection);
+            var connectionTask = connection.StartAsync();
+            await Task.WhenAny(clipboardTask, connectionTask);
         });
         
         // Create the command for sending the current clipboard to the server.

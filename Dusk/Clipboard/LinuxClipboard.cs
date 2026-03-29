@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Net.Mime;
 using System.Text;
+using Dusk.Client;
 using Dusk.Diagnostic;
+using Microsoft.Extensions.Logging;
 
 namespace Dusk.Clipboard;
 
@@ -59,8 +61,9 @@ public class LinuxClipboard : IClipboard
     /// <summary>
     /// Reads the current clipboard.
     /// </summary>
+    /// <param name="debugLogLevel">Optional log level for the debug log messages.</param>
     /// <returns>Contents of the clipboard.</returns>
-    public async Task<ClipboardData?> ReadClipboardAsync()
+    public async Task<ClipboardData?> ReadClipboardAsync(LogLevel debugLogLevel = LogLevel.Debug)
     {
         // List the types of the clipboard.
         // Return if nothing is copied.
@@ -73,7 +76,7 @@ public class LinuxClipboard : IClipboard
         
         // Read the MIME types and pick the first one with a slash.
         var mimeTypes = mimeTypesOutput.Split("\n").Select(x => x.Trim()).ToArray();
-        Logger.Debug($"Reading clipboard data with MIME type: {string.Join(", ", mimeTypes)}");
+        Logger.Log(debugLogLevel, $"Reading clipboard data with MIME type: {string.Join(", ", mimeTypes)}");
         var mimeType = mimeTypes.FirstOrDefault(mimeType => mimeType.Contains('/'));
         if (mimeType == null)
         {
@@ -90,7 +93,7 @@ public class LinuxClipboard : IClipboard
                 {
                     var contentType = new ContentType(clipboardMimeType);
                     if (contentType.MediaType != priorityMimeType) continue;
-                    Logger.Debug($"Using priority MIME type: {clipboardMimeType}");
+                    Logger.Log(debugLogLevel, $"Using priority MIME type: {clipboardMimeType}");
                     mimeType = clipboardMimeType;
                     break;
                 }
@@ -102,7 +105,7 @@ public class LinuxClipboard : IClipboard
         }
         
         // Read and return the clipboard data.
-        Logger.Debug($"Reading clipboard with MIME type: {mimeType}");
+        Logger.Log(debugLogLevel, $"Reading clipboard with MIME type: {mimeType}");
         var data = await RunWlPaste($"--no-newline --type {mimeType}");
         return new ClipboardData()
         {
@@ -114,7 +117,7 @@ public class LinuxClipboard : IClipboard
     /// <summary>
     /// Writes the current clipboard.
     /// </summary>
-    /// <param name="data">Contents of the clipboard</param>
+    /// <param name="data">Contents of the clipboard.</param>
     public async Task WriteClipboardAsync(ClipboardData data)
     {
         // Start the wl-copy command.
@@ -140,6 +143,15 @@ public class LinuxClipboard : IClipboard
         {
             Logger.Warn($"wl-copy exited with code {process.ExitCode}.");
         }
+    }
+
+    /// <summary>
+    /// Listens for clipboard changes.
+    /// </summary>
+    /// <param name="clientConnection">Client connection to send clipboard updates for.</param>
+    public async Task MonitorClipboardChangesAsync(ClientConnection clientConnection)
+    {
+        // TODO
     }
 
     /// <summary>

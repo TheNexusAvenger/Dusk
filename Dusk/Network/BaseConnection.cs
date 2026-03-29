@@ -74,7 +74,7 @@ public abstract class BaseConnection
     /// <summary>
     /// Starts handling the connection.
     /// </summary>
-    public void Start()
+    public async Task StartAsync()
     {
         // Handle requests from the client.
         var receiveTask = Task.Run(async () =>
@@ -132,7 +132,7 @@ public abstract class BaseConnection
         
         // Wait for one task to complete.
         // Either one finishing closes the client.
-        Task.WaitAny(receiveTask, pingTask);
+        await Task.WhenAny(receiveTask, pingTask);
     }
     
     /// <summary>
