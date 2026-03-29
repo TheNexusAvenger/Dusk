@@ -64,8 +64,15 @@ public class Program
             }.ToPacketData());
             
             // Keep the connection alive until complete.
-            await client.Stream.ReceiveAsync();
-            client.Close();
+            try
+            {
+                await client.Stream.ReceiveAsync();
+                client.Close();
+            }
+            catch (InvalidOperationException)
+            {
+                // Connection closed by server.
+            }
         });
         
         // Create the root command.
