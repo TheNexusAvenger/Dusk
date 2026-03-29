@@ -192,7 +192,7 @@ public class LinuxClipboard : IClipboard
 
         // Wait for the paste process to exist.
         await process.WaitForExitAsync();
-        if (process.ExitCode != 0)
+        if (process.ExitCode != 0 && !arguments.Contains("--list-types"))
         {
             Logger.Warn($"wl-paste exited with code {process.ExitCode}.");
         }
