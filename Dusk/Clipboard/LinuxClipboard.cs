@@ -180,6 +180,7 @@ public class LinuxClipboard : IClipboard
             FileName = _wlPastePath,
             Arguments = arguments,
             RedirectStandardOutput = true,
+            RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
@@ -188,7 +189,9 @@ public class LinuxClipboard : IClipboard
         // Copy the output to a memory stream.
         // This must be copied out to avoid the output stream getting full and pausing the application.
         using var outputMemoryStream = new MemoryStream();
+        using var errorMemoryStream = new MemoryStream();
         await process.StandardOutput.BaseStream.CopyToAsync(outputMemoryStream);
+        await process.StandardError.BaseStream.CopyToAsync(errorMemoryStream);
 
         // Wait for the paste process to exist.
         await process.WaitForExitAsync();
@@ -198,6 +201,6 @@ public class LinuxClipboard : IClipboard
         }
         
         // Return the output.
-        return outputMemoryStream.ToArray();
+        return outputMemoryStream.ToArray().Concat(errorMemoryStream.ToArray()).ToArray();
     }
 }
