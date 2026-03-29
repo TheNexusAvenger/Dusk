@@ -6,7 +6,7 @@ services:
       dockerfile: ./Dockerfile
     restart: always
     environment:
-     - DUSK_CONFIGURATION_DIRECTORY=/configuration/configuration.json
+     - DUSK_CONFIGURATION_DIRECTORY=/configuration/
     ports:
       - 23594:23594
     volumes:
