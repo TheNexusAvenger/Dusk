@@ -151,7 +151,19 @@ public class LinuxClipboard : IClipboard
     /// <param name="clientConnection">Client connection to send clipboard updates for.</param>
     public async Task MonitorClipboardChangesAsync(ClientConnection clientConnection)
     {
-        // TODO
+        // Create the paste process.
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo
+        {
+            FileName = _wlPastePath,
+            Arguments = $"--watch \"{Environment.ProcessPath}\" send-clipboard \"{clientConnection.Id}\"",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        process.Start();
+        
+        // Wait for the process to complete.
+        await process.WaitForExitAsync();
     }
 
     /// <summary>
@@ -169,7 +181,7 @@ public class LinuxClipboard : IClipboard
             Arguments = arguments,
             RedirectStandardOutput = true,
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = true,
         };
         process.Start();
 
