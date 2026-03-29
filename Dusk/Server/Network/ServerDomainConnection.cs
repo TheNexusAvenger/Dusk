@@ -69,14 +69,21 @@ public class ServerDomainConnection : BaseConnection
                 Logger.Warn($"Connection {sourceConnectionId} sent an updated clipboard for {this.ServerDomain.Name}, but the connection does not exist. This might cause clipboard setting loopback.");
             }
             
+            // Return if the clipboard is the same.
+            var lastClipboardData = this.ServerDomain.LastClipboardData;
+            if (lastClipboardData != null && lastClipboardData.MimeType == updateClipboardPacket.MimeType && lastClipboardData.Data.SequenceEqual(updateClipboardPacket.Data))
+            {
+                Logger.Debug("Clipboard data was sent back. Ignoring replication.");
+                return;
+            }
+            
             // Replicate the clipboard to the other clients.
-            var replicationTasks = new List<Task>();
+            // To avoid blocking, sending is not blocked.
             foreach (var connection in this.ServerDomain.Connections.Values)
             {
                 if (connection.Id == sourceConnectionId) continue;
-                replicationTasks.Add(connection.TrySendPacketAsync(packet));
+                var _ = connection.TrySendPacketAsync(packet);
             }
-            await Task.WhenAll(replicationTasks);
         }
         else
         {
