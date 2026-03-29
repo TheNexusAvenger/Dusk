@@ -1,4 +1,5 @@
 ﻿using System.Net.Sockets;
+using Dusk.Clipboard;
 using Dusk.Configuration;
 using Dusk.Diagnostic;
 using Dusk.Network;
@@ -76,6 +77,11 @@ public class ServerDomainConnection : BaseConnection
                 Logger.Debug("Clipboard data was sent back. Ignoring replication.");
                 return;
             }
+            this.ServerDomain.LastClipboardData = new ClipboardData()
+            {
+                MimeType = updateClipboardPacket.MimeType,
+                Data = updateClipboardPacket.Data,
+            };
             
             // Replicate the clipboard to the other clients.
             // To avoid blocking, sending is not blocked.
