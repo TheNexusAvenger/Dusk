@@ -14,4 +14,4 @@ COPY --from=build /publish .
 RUN apk add wget icu-libs
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 RUN ln -s Dusk.dll app.dll
-ENTRYPOINT ["dotnet", "/app/app.dll", "server"]
+ENTRYPOINT ["dotnet", "/app/app.dll", "serve"]
