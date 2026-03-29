@@ -1,24 +1,59 @@
-﻿using System.Text;
+﻿using System.Net.Mime;
+using System.Text;
 
 namespace Dusk.Clipboard.Windows;
 
 public class WindowsClipboardWriters
 {
+    public class WindowsClipboardWriteEntry
+    {
+        /// <summary>
+        /// MIME type of the clipboard type.
+        /// </summary>
+        public string MimeType { get; set; } = null!;
+        
+        /// <summary>
+        /// MIME subtype of the clipboard type.
+        /// </summary>
+        public string? MimeSubtype { get; set; }
+    
+        /// <summary>
+        /// Windows clipboard format of the clipboard type.
+        /// </summary>
+        public string ClipboardFormat { get; set; } = null!;
+
+        /// <summary>
+        /// Converts from one format to another.
+        /// If not specified, the original data is used.
+        /// </summary>
+        public Func<byte[], ContentType, byte[]>? Convert { get; set; }
+    }
+    
     /// <summary>
     /// Reads MIME types and converts to Windows clipboard format.
     /// </summary>
-    public static readonly List<WindowsClipboardEntry> ClipboardWriters = new List<WindowsClipboardEntry>()
+    public static readonly List<WindowsClipboardWriteEntry> ClipboardWriters = new List<WindowsClipboardWriteEntry>()
     {
-        new WindowsClipboardEntry()
+        new WindowsClipboardWriteEntry()
         {
-            MimeType = "text/plain;charset=utf-8",
+            MimeType = "text",
+            // Any subtype accepted.
             ClipboardFormat = "CF_UNICODETEXT",
-            Convert = (data) => Encoding.Unicode.GetBytes(Encoding.UTF8.GetString(data)).Concat(new byte[1]).ToArray(),
-        },
-        new WindowsClipboardEntry()
-        {
-            MimeType = "text/plain",
-            ClipboardFormat = "CF_TEXT",
+            Convert = (data, contentType) =>
+            {
+                // Get the encoding type.
+                // Since the source will use UTF-16be but won't state it, it must be converted to UTF-16be (instead of UTF-16le).
+                var encoding = Encoding.GetEncoding(contentType.CharSet ?? "utf-8");
+                if (encoding.EncodingName == "Unicode")
+                {
+                    encoding = Encoding.BigEndianUnicode;
+                }
+                
+                // Convert from the source encoding and to UTF-16le.
+                return Encoding.Unicode
+                    .GetBytes(encoding.GetString(data))
+                    .Concat(new byte[2]).ToArray();
+            },
         },
     };
 }

@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Net.Mime;
 using System.Runtime.InteropServices;
 using System.Text;
 using Dusk.Diagnostic;
@@ -122,8 +123,16 @@ public class WindowsClipboard : IClipboard
         {
             // Get the clipboard writer and replace it if the mimetype is not supported.
             Logger.Debug($"Writing clipboard data with MIME type: {data.MimeType}");
-            var clipboardWriter =
-                WindowsClipboardWriters.ClipboardWriters.FirstOrDefault(entry => entry.MimeType == data.MimeType);
+            var contentType = new ContentType(data.MimeType);
+            WindowsClipboardWriters.WindowsClipboardWriteEntry? clipboardWriter = null;
+            foreach (var writer in WindowsClipboardWriters.ClipboardWriters)
+            {
+                var mimeTypeParts = contentType.MediaType.Split("/", 2);
+                if (writer.MimeType != mimeTypeParts[0]) continue;
+                if (writer.MimeSubtype != null && mimeTypeParts[1] != writer.MimeSubtype) continue;
+                clipboardWriter = writer;
+                break;
+            }
             if (clipboardWriter == null)
             {
                 Logger.Warn($"Unsupported MIME type: {data.MimeType}");
@@ -135,7 +144,7 @@ public class WindowsClipboard : IClipboard
             // Convert the data if the writer has a converter.
             if (clipboardWriter!.Convert != null)
             {
-                data.Data = clipboardWriter.Convert(data.Data);
+                data.Data = clipboardWriter.Convert(data.Data, contentType);
             }
             
             // Allocate unmanaged memory for the data.

@@ -4,16 +4,35 @@ namespace Dusk.Clipboard.Windows;
 
 public class WindowsClipboardReaders
 {
+    public class WindowsClipboardReadEntry
+    {
+        /// <summary>
+        /// MIME type of the clipboard type.
+        /// </summary>
+        public string MimeType { get; set; } = null!;
+    
+        /// <summary>
+        /// Windows clipboard format of the clipboard type.
+        /// </summary>
+        public string ClipboardFormat { get; set; } = null!;
+
+        /// <summary>
+        /// Converts from one format to another.
+        /// If not specified, the original data is used.
+        /// </summary>
+        public Func<byte[], byte[]>? Convert { get; set; }
+    }
+    
     /// <summary>
     /// Reads the Windows clipboard and converts to MIME types.
     /// This is run in order!
     /// Reference: https://learn.microsoft.com/en-us/windows/win32/dataxchg/standard-clipboard-formats
     /// </summary>
-    public static readonly List<WindowsClipboardEntry> ClipboardReaders = new List<WindowsClipboardEntry>()
+    public static readonly List<WindowsClipboardReadEntry> ClipboardReaders = new List<WindowsClipboardReadEntry>()
     {
         // CF_UNICODETEXT (13)
         // Must be before CF_TEXT (1), since text has both.
-        new WindowsClipboardEntry()
+        new WindowsClipboardReadEntry()
         {
             MimeType = "text/plain;charset=utf-8",
             ClipboardFormat = "CF_UNICODETEXT",
@@ -21,7 +40,7 @@ public class WindowsClipboardReaders
         },
         
         // CF_TEXT (1)
-        new WindowsClipboardEntry()
+        new WindowsClipboardReadEntry()
         {
             MimeType = "text/plain",
             ClipboardFormat = "CF_TEXT",
