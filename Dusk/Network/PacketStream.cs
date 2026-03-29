@@ -43,8 +43,8 @@ public class PacketStream
     {
         // Get the packet length and throw an exception if the connection closed.
         var packetLenBuffer = new byte[4];
-        var bytesRead = await this._stream.ReadAsync(packetLenBuffer);
-        if (bytesRead == 0)
+        var lengthBytesRead = await this._stream.ReadAsync(packetLenBuffer);
+        if (lengthBytesRead == 0)
         {
             throw new InvalidOperationException("Connection closed.");
         }
@@ -58,11 +58,20 @@ public class PacketStream
         
         // Read and return the data.
         var packetType = new byte[1];
-        await this._stream.ReadAsync(packetType);
+        await this._stream.ReadExactlyAsync(packetType, 0, 4);
         var packetBuffer = new byte[packetSize];
         if (packetBuffer.Length != 0)
         {
-            await this._stream.ReadAsync(packetBuffer);
+            var packetBytesRead = 0;
+            while (packetBytesRead < packetBuffer.Length)
+            {
+                var currentBytesRead = await this._stream.ReadAsync(packetBuffer, packetBytesRead, packetBuffer.Length - packetBytesRead);
+                if (currentBytesRead == 0)
+                {
+                    throw new InvalidOperationException("Connection closed.");
+                }
+                packetBytesRead += currentBytesRead;
+            }
         }
         return new PacketData((PacketData.PacketType) packetType[0], packetBuffer);
     }
