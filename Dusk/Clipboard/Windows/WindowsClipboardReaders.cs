@@ -17,7 +17,7 @@ public class WindowsClipboardReaders
         {
             MimeType = "text/plain;charset=utf-8",
             ClipboardFormat = "CF_UNICODETEXT",
-            Convert = (data) => Encoding.UTF8.GetBytes(Encoding.Unicode.GetString(data)),
+            Convert = (data) => Encoding.UTF8.GetBytes(Encoding.Unicode.GetString(data)).TrimEnd((byte) 0).ToArray(),
         },
         
         // CF_TEXT (1)

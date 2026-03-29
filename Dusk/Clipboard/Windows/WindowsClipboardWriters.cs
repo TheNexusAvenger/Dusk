@@ -13,7 +13,7 @@ public class WindowsClipboardWriters
         {
             MimeType = "text/plain;charset=utf-8",
             ClipboardFormat = "CF_UNICODETEXT",
-            Convert = (data) => Encoding.Unicode.GetBytes(Encoding.UTF8.GetString(data)),
+            Convert = (data) => Encoding.Unicode.GetBytes(Encoding.UTF8.GetString(data)).Concat(new byte[1]).ToArray(),
         },
         new WindowsClipboardEntry()
         {
