@@ -88,14 +88,23 @@ public class ConfigurationState<T> where T : BaseConfiguration
         }
         
         // Read the configuration.
+        Logger.Trace("Attempting to read new configuration.");
         var configurationContents = await File.ReadAllTextAsync(path);
         this.CurrentConfiguration = JsonSerializer.Deserialize<T>(configurationContents, this._configurationJsonType)!;
+        Logger.Trace("Read new configuration.");
         
         // Invoke the changed event if the contents changed.
-        if (this._lastConfiguration != null && this._lastConfiguration != configurationContents)
+        if (this._lastConfiguration != configurationContents)
         {
-            Logger.Debug("Configuration updated.");
-            ConfigurationChanged?.Invoke(this.CurrentConfiguration);
+            // Invoke the updated event.
+            if (this._lastConfiguration != null)
+            {
+                Logger.Debug("Configuration updated.");
+                ConfigurationChanged?.Invoke(this.CurrentConfiguration);
+            }
+            
+            // Set the minimum log level.
+            Logger.SetMinimumLogLevel(this.CurrentConfiguration.Logging.MinimumLogLevel);
         }
         this._lastConfiguration = configurationContents;
     }

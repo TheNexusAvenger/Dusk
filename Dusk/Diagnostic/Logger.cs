@@ -40,6 +40,16 @@ public class Logger
     }
     
     /// <summary>
+    /// Logs a message as a Trace level.
+    /// </summary>
+    /// <param name="content">Content to log. Can be an object, like an exception.</param>
+    [LogTraceIgnore]
+    public static void Trace(object content)
+    {
+        NexusLogger.Trace(content);
+    }
+    
+    /// <summary>
     /// Logs a message as a Debug level.
     /// </summary>
     /// <param name="content">Content to log. Can be an object, like an exception.</param>
