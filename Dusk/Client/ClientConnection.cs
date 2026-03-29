@@ -57,7 +57,7 @@ public class ClientConnection : BaseConnection
             throw new InvalidDataException($"Received unexpected packet type {connectionIdResponse.Type}.");
         }
         var connectionId = AuthenticatedPacket.FromPacket(connectionIdResponse).ConnectionId;
-        Logger.Debug($"Connected as connection {connectionId}.");
+        Logger.Info($"Connected as connection {connectionId}.");
         
         // Return the client.
         return new ClientConnection(connectionId, client, packetStream);
