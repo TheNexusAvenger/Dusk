@@ -43,7 +43,7 @@ public class LinuxClipboard : IClipboard
     public static string? FindInPath(string fileName)
     {
         return Environment.GetEnvironmentVariable("PATH")!.Split(":")
-            .Select(directory => Path.Combine(directory, "fileName"))
+            .Select(directory => Path.Combine(directory, fileName))
             .FirstOrDefault(File.Exists);
     }
 
