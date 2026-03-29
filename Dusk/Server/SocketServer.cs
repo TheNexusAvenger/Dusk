@@ -108,6 +108,7 @@ public class SocketServer
         if (authenticationPacket.Type == PacketData.PacketType.AuthenticationShortLived)
         {
             var packet = await packetStream.ReceiveAsync();
+            Logger.Debug($"Received {packet.Type} request from short-lived connection {connectionId}.");
             await serverDomainConnection.ProcessPacketAsync(packet);
             serverDomainConnection.Close();
             return;
