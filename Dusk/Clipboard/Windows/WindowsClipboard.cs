@@ -83,6 +83,7 @@ public class WindowsClipboard : IClipboard
             lockPointer = GlobalLock(readHandle);
             if (lockPointer == IntPtr.Zero)
             {
+                Logger.Warn("Failed to get global lock for clipboard.");
                 return null;
             }
 
@@ -166,6 +167,7 @@ public class WindowsClipboard : IClipboard
             var lockPointer = GlobalLock(dataGlobal);
             if (lockPointer == IntPtr.Zero)
             {
+                Logger.Warn("Failed to get global lock for clipboard.");
                 throw new Win32Exception(Marshal.GetLastWin32Error());
             }
 

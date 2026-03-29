@@ -34,6 +34,7 @@ public class WindowsClipboardWriters
     /// </summary>
     public static readonly List<WindowsClipboardWriteEntry> ClipboardWriters = new List<WindowsClipboardWriteEntry>()
     {
+        // Text
         new WindowsClipboardWriteEntry()
         {
             MimeType = "text",
@@ -50,6 +51,14 @@ public class WindowsClipboardWriters
                 // Convert from the source encoding and to UTF-16le.
                 return Encoding.Unicode.GetBytes(inputString).Concat(new byte[2]).ToArray();
             },
+        },
+        
+        // PNG
+        new WindowsClipboardWriteEntry()
+        {
+            MimeType = "image",
+            MimeSubtype = "png",
+            ClipboardFormat = "PNG",
         },
     };
 }

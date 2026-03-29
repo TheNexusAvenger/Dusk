@@ -46,8 +46,15 @@ public class WindowsClipboardReaders
             ClipboardFormat = "CF_TEXT",
         },
         
+        // PNG
+        // Should handle CF_BITMAP (2), CF_DIB (8), and CF_DIBV5 (17)
+        new WindowsClipboardReadEntry()
+        {
+            MimeType = "image/png",
+            ClipboardFormat = "PNG",
+        },
+        
         // Unsupported:
-        // CF_BITMAP (2)
         // CF_METAFILEPICT (3)
         // CF_SYLK (4)
         // CF_DIF (5)
@@ -61,6 +68,5 @@ public class WindowsClipboardReaders
         // CF_ENHMETAFILE (14)
         // CF_HDROP (15)
         // CF_LOCALE (16)
-        // CF_DIBV5 (17)
     };
 }
