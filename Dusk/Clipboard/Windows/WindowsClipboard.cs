@@ -209,7 +209,7 @@ public class WindowsClipboard : IClipboard
         
         // Run a busy-wait loop to check the clipboard.
         // This isn't optimal, but avoids needing to create a window.
-        while (true)
+        while (clientConnection.IsActive())
         {
             // Wait to check again.
             await Task.Delay(100);
