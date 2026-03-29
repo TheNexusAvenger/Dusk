@@ -16,6 +16,11 @@ public class ClientConnection : BaseConnection
     private bool _active = true;
     
     /// <summary>
+    /// Last clipboard data that was sent.
+    /// </summary>
+    private ClipboardData? _lastSentClipboardData;
+    
+    /// <summary>
     /// Creates a client connection.
     /// </summary>
     /// <param name="id">Id of the connection.</param>
@@ -23,7 +28,8 @@ public class ClientConnection : BaseConnection
     /// <param name="stream">Packet stream of the connection.</param>
     public ClientConnection(string id, TcpClient client, PacketStream stream) : base(id, client, stream)
     {
-        
+        // Load the current clipboard data.
+        this._lastSentClipboardData = IClipboard.GetClipboard().ReadClipboardAsync().Result;
     }
 
     /// <summary>
@@ -101,17 +107,43 @@ public class ClientConnection : BaseConnection
             // Update the clipboard.
             var updateClipboardPacket = UpdateClipboardPacket.FromPacket(packet);
             Logger.Info($"Updating clipboard with MIME type {updateClipboardPacket.MimeType}.");
-            await IClipboard.GetClipboard().WriteClipboardAsync(new ClipboardData()
+            var newClipboardData = new ClipboardData()
             {
                 MimeType = updateClipboardPacket.MimeType,
                 Data = updateClipboardPacket.Data,
-            });
+            };
+            this._lastSentClipboardData = newClipboardData;
+            await IClipboard.GetClipboard().WriteClipboardAsync(newClipboardData);
         }
         else
         {
             // Warn that the packet has no handler.
             Logger.Warn($"No packet processor for {packet.Type}.");
         }
+    }
+
+    /// <summary>
+    /// Sends the clipboard to the server if the clipboard changed.
+    /// </summary>
+    public async Task SendClipboardAsync()
+    {
+        // Return if the clipboard data is the same.
+        var lastClipboard = this._lastSentClipboardData;
+        var currentClipboard = await IClipboard.GetClipboard().ReadClipboardAsync();
+        if (currentClipboard == null)
+        {
+            Logger.Error("Clipboard read failed.");
+            return;
+        }
+        if (lastClipboard != null && lastClipboard.MimeType == currentClipboard.MimeType && currentClipboard.Data.SequenceEqual(lastClipboard.Data)) return;
+        this._lastSentClipboardData = currentClipboard;
+        
+        // Send the clipboard.
+        await this.TrySendPacketAsync(new UpdateClipboardPacket()
+        {
+            MimeType = currentClipboard.MimeType,
+            Data = currentClipboard.Data,
+        }.ToPacketData());
     }
     
     /// <summary>
@@ -136,20 +168,7 @@ public class ClientConnection : BaseConnection
                 if (request == "UpdateClipboard")
                 {
                     // Send the updated clipboard.
-                    var clipboard = IClipboard.GetClipboard();
-                    var clipboardData = await clipboard.ReadClipboardAsync();
-                    if (clipboardData != null)
-                    {
-                        await this.TrySendPacketAsync(new UpdateClipboardPacket()
-                        {
-                            MimeType = clipboardData.MimeType,
-                            Data = clipboardData.Data,
-                        }.ToPacketData());
-                    }
-                    else
-                    {
-                        Logger.Error("Clipboard read failed.");
-                    }
+                    await this.SendClipboardAsync();
                 }
                 else
                 {
