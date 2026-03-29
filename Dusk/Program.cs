@@ -1,9 +1,8 @@
 ﻿using System.CommandLine;
+using System.IO.Pipes;
 using Dusk.Client;
 using Dusk.Clipboard;
 using Dusk.Diagnostic;
-using Dusk.Network;
-using Dusk.Network.Packet;
 using Dusk.Server;
 
 namespace Dusk;
@@ -30,49 +29,20 @@ public class Program
             var connection = await ClientConnection.ConnectAsync();
             var clipboardTask = IClipboard.GetClipboard().MonitorClipboardChangesAsync(connection);
             var connectionTask = connection.StartAsync();
-            await Task.WhenAny(clipboardTask, connectionTask);
+            var namedPipeServerTask = connection.RunPipeServerAsync();
+            await Task.WhenAny(clipboardTask, connectionTask, namedPipeServerTask);
         });
         
         // Create the command for sending the current clipboard to the server.
-        var sendClipboardConnectionIdArgument = new Argument<string>("connectionId")
-        {
-            Description = "Id of the connection sending the clipboard data.",
-            Arity = ArgumentArity.ExactlyOne,
-        };
-        
         var sendClipboardCommand = new Command("send-clipboard", description: "Sends the current clipboard to the server.");
-        sendClipboardCommand.Arguments.Add(sendClipboardConnectionIdArgument);
         sendClipboardCommand.SetAction(async parseResult =>
         {
-            // Open the connection.
-            var client = await ClientConnection.ConnectAsync(PacketData.PacketType.AuthenticationShortLived);
-            
-            // Send the clipboard.
-            var clipboard = IClipboard.GetClipboard();
-            var clipboardData = await clipboard.ReadClipboardAsync();
-            if (clipboardData == null)
-            {
-                Logger.Error("Clipboard read failed.");
-                return;
-            }
-            Logger.Info($"Sending clipboard with MIME type {clipboardData.MimeType}.");
-            await client.TrySendPacketAsync(new UpdateClipboardPacket()
-            {
-                SourceConnectionId = parseResult.GetValue(sendClipboardConnectionIdArgument)!,
-                MimeType = clipboardData.MimeType,
-                Data = clipboardData.Data,
-            }.ToPacketData());
-            
-            // Keep the connection alive until complete.
-            try
-            {
-                await client.Stream.ReceiveAsync();
-                client.Close();
-            }
-            catch (InvalidOperationException)
-            {
-                // Connection closed by server.
-            }
+            // Send the update clipboard request to the socket.
+            await using var pipeClient = new NamedPipeClientStream(".", "DuskClient", PipeDirection.Out);
+            await pipeClient.ConnectAsync();
+            await using var streamWriter = new StreamWriter(pipeClient);
+            await streamWriter.WriteLineAsync("UpdateClipboard");
+            await streamWriter.FlushAsync();
         });
         
         // Create the root command.

@@ -156,7 +156,7 @@ public class LinuxClipboard : IClipboard
         process.StartInfo = new ProcessStartInfo
         {
             FileName = _wlPastePath,
-            Arguments = $"--watch \"{Environment.ProcessPath}\" send-clipboard \"{clientConnection.Id}\"",
+            Arguments = $"--watch \"{Environment.ProcessPath}\" send-clipboard",
             UseShellExecute = false,
             CreateNoWindow = true,
         };

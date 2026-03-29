@@ -229,7 +229,6 @@ public class WindowsClipboard : IClipboard
                 // Send the updated clipboard.
                 await clientConnection.TrySendPacketAsync(new UpdateClipboardPacket()
                 {
-                    SourceConnectionId = clientConnection.Id,
                     MimeType = currentClipboard.MimeType,
                     Data = currentClipboard.Data,
                 }.ToPacketData());

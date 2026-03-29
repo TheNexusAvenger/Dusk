@@ -1,7 +1,6 @@
 ﻿using System.Net.Sockets;
 using Dusk.Configuration;
 using Dusk.Diagnostic;
-using Dusk.Server;
 
 namespace Dusk.Network;
 

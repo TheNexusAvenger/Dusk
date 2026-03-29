@@ -67,7 +67,7 @@ public class SocketServer
         var packetStream = new PacketStream(stream);
         var maxSecretSize = configuration.Domains.Max(domain => domain.Secret.Length);
         var authenticationPacket = await packetStream.ReceiveAsync(maxSecretSize);
-        if (authenticationPacket.Type != PacketData.PacketType.Authentication && authenticationPacket.Type != PacketData.PacketType.AuthenticationShortLived)
+        if (authenticationPacket.Type != PacketData.PacketType.Authentication)
         {
             Logger.Debug($"Disconnecting {connectionId} due to wrong packet type.");
             client.Close();
@@ -103,16 +103,6 @@ public class SocketServer
         {
             ConnectionId = connectionId,
         }.ToPacketData());
-        
-        // Close the connection after processing a single packet if it is short-lived.
-        if (authenticationPacket.Type == PacketData.PacketType.AuthenticationShortLived)
-        {
-            var packet = await packetStream.ReceiveAsync();
-            Logger.Debug($"Received {packet.Type} request from short-lived connection {connectionId}.");
-            await serverDomainConnection.ProcessPacketAsync(packet);
-            serverDomainConnection.Close();
-            return;
-        }
         
         // Start sending pin requests and listening for packets.
         await serverDomainConnection.StartAsync();

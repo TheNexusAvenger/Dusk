@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System.IO.Pipes;
+using System.Net.Sockets;
 using Dusk.Clipboard;
 using Dusk.Configuration;
 using Dusk.Diagnostic;
@@ -110,6 +111,56 @@ public class ClientConnection : BaseConnection
         {
             // Warn that the packet has no handler.
             Logger.Warn($"No packet processor for {packet.Type}.");
+        }
+    }
+    
+    /// <summary>
+    /// Runs the pipe server for inter-process communication (mainly for Linux).
+    /// </summary>
+    public async Task RunPipeServerAsync()
+    {
+        // Listen for requests to send the clipboard.
+        while (this.IsActive())
+        {
+            try
+            {
+                // Start the pipe server.
+                await using var pipeServer = new NamedPipeServerStream("DuskClient", PipeDirection.In);
+                Logger.Debug("Started pipe server.");
+                using var streamReader = new StreamReader(pipeServer);
+                
+                // Wait for the connection.
+                await pipeServer.WaitForConnectionAsync();
+                var request = await streamReader.ReadLineAsync();
+                if (request == null) break;
+                if (request == "UpdateClipboard")
+                {
+                    // Send the updated clipboard.
+                    var clipboard = IClipboard.GetClipboard();
+                    var clipboardData = await clipboard.ReadClipboardAsync();
+                    if (clipboardData != null)
+                    {
+                        await this.TrySendPacketAsync(new UpdateClipboardPacket()
+                        {
+                            MimeType = clipboardData.MimeType,
+                            Data = clipboardData.Data,
+                        }.ToPacketData());
+                    }
+                    else
+                    {
+                        Logger.Error("Clipboard read failed.");
+                    }
+                }
+                else
+                {
+                    // Warn if there is no handler.
+                    Logger.Warn($"No pipe handler for \"{request}\".");
+                }
+            }
+            catch (IOException e)
+            {
+                // Pipe closed.
+            }
         }
     }
 }

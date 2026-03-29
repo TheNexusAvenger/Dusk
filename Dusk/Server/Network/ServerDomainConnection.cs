@@ -61,16 +61,9 @@ public class ServerDomainConnection : BaseConnection
     {
         if (packet.Type == PacketData.PacketType.UpdateClipboard)
         {
-            // Warn if the source connection id doesn't exist.
-            var updateClipboardPacket = UpdateClipboardPacket.FromPacket(packet);
-            var sourceConnectionId = updateClipboardPacket.SourceConnectionId;
-            Logger.Info($"Replicating clipboard in domain {this.ServerDomain.Name} from connection {updateClipboardPacket.SourceConnectionId}.");
-            if (!this.ServerDomain.Connections.ContainsKey(sourceConnectionId))
-            {
-                Logger.Warn($"Connection {sourceConnectionId} sent an updated clipboard for {this.ServerDomain.Name}, but the connection does not exist. This might cause clipboard setting loopback.");
-            }
-            
             // Return if the clipboard is the same.
+            Logger.Info($"Replicating clipboard in domain {this.ServerDomain.Name} from connection {this.Id}.");
+            var updateClipboardPacket = UpdateClipboardPacket.FromPacket(packet);
             var lastClipboardData = this.ServerDomain.LastClipboardData;
             if (lastClipboardData != null && lastClipboardData.MimeType == updateClipboardPacket.MimeType && lastClipboardData.Data.SequenceEqual(updateClipboardPacket.Data))
             {
@@ -87,7 +80,7 @@ public class ServerDomainConnection : BaseConnection
             // To avoid blocking, sending is not blocked.
             foreach (var connection in this.ServerDomain.Connections.Values)
             {
-                if (connection.Id == sourceConnectionId) continue;
+                if (connection.Id == this.Id) continue;
                 var _ = connection.TrySendPacketAsync(packet);
             }
         }
