@@ -26,11 +26,26 @@ public class Program
         var runCommand = new Command("run", description: "Runs the client.");
         runCommand.SetAction(async parseResult =>
         {
-            var connection = await ClientConnection.ConnectAsync();
-            var clipboardTask = IClipboard.GetClipboard().MonitorClipboardChangesAsync(connection);
-            var connectionTask = connection.StartAsync();
-            var namedPipeServerTask = connection.RunPipeServerAsync();
-            await Task.WhenAny(clipboardTask, connectionTask, namedPipeServerTask);
+            while (true)
+            {
+                // Run the connection.
+                try
+                {
+                    var connection = await ClientConnection.ConnectAsync();
+                    var clipboardTask = IClipboard.GetClipboard().MonitorClipboardChangesAsync(connection);
+                    var connectionTask = connection.StartAsync();
+                    var namedPipeServerTask = connection.RunPipeServerAsync();
+                    await Task.WhenAny(clipboardTask, connectionTask, namedPipeServerTask);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error($"Connection closed: {e}");
+                }
+                
+                // Automatically reconnect after 5 seconds.
+                Logger.Warn("Connection closed. Attempting to reconnect in 5 minutes.");
+                await Task.Delay(TimeSpan.FromSeconds(5));
+            }
         });
         
         // Create the command for sending the current clipboard to the server.
