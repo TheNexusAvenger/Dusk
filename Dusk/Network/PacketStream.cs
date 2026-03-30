@@ -58,7 +58,7 @@ public class PacketStream
         
         // Read and return the data.
         var packetType = new byte[1];
-        await this._stream.ReadAsync(packetType);
+        await this._stream.ReadExactlyAsync(packetType);
         var packetBuffer = new byte[packetSize];
         if (packetBuffer.Length != 0)
         {
