@@ -176,7 +176,7 @@ public class ClientConnection : BaseConnection
                     Logger.Warn($"No pipe handler for \"{request}\".");
                 }
             }
-            catch (IOException e)
+            catch (IOException)
             {
                 // Pipe closed.
             }
