@@ -82,7 +82,7 @@ public class SocketServer
             client.Close();
             return;
         }
-        Logger.Debug($"Client {connectionId} connected to domain {domain.Name} ({authenticationPacket.Type}).");
+        Logger.Info($"Client {connectionId} connected to domain {domain.Name}.");
         
         // Create the domain if it doesn't exist.
         if (!this._domains.ContainsKey(domain.Name))
