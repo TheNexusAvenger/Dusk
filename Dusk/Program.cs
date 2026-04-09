@@ -43,7 +43,7 @@ public class Program
                 }
                 
                 // Automatically reconnect after 5 seconds.
-                Logger.Warn("Connection closed. Attempting to reconnect in 5 minutes.");
+                Logger.Warn("Connection closed. Attempting to reconnect in 5 seconds.");
                 await Task.Delay(TimeSpan.FromSeconds(5));
             }
         });
