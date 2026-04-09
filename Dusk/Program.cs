@@ -26,16 +26,20 @@ public class Program
         var runCommand = new Command("run", description: "Runs the client.");
         runCommand.SetAction(async parseResult =>
         {
+            // Start the server.
+            var pipeServer = new ClientPipeServer();
+            var _ = pipeServer.RunPipeServerAsync();
+            
             while (true)
             {
                 // Run the connection.
                 try
                 {
                     var connection = await ClientConnection.ConnectAsync();
+                    pipeServer.CurrentConnection = connection;
                     var clipboardTask = IClipboard.GetClipboard().MonitorClipboardChangesAsync(connection);
                     var connectionTask = connection.StartAsync();
-                    var namedPipeServerTask = connection.RunPipeServerAsync();
-                    await Task.WhenAny(clipboardTask, connectionTask, namedPipeServerTask);
+                    await Task.WhenAny(clipboardTask, connectionTask);
                 }
                 catch (Exception e)
                 {
