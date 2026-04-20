@@ -27,19 +27,34 @@ public interface IClipboard
     public Task MonitorClipboardChangesAsync(ClientConnection clientConnection);
 
     /// <summary>
+    /// Static clipboard instance.
+    /// </summary>
+    private static IClipboard? _clipboard;
+
+    /// <summary>
     /// Returns the clipboard for the current environment.
     /// </summary>
     /// <returns>The clipboard for the current environment.</returns>
     public static IClipboard GetClipboard()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        // Create the clipboard if it doesn't exist.
+        if (_clipboard == null)
         {
-            return new WindowsClipboard();
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                _clipboard = new WindowsClipboard();
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                _clipboard = new LinuxClipboard();
+            }
+            else
+            {
+                throw new PlatformNotSupportedException("Clipboard implementation not found for current platform.");
+            }
         }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            return new LinuxClipboard();
-        }
-        throw new PlatformNotSupportedException("Clipboard implementation not found for current platform.");
+        
+        // Return the clipboard.
+        return _clipboard;
     }
 }
