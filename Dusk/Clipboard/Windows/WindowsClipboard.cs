@@ -34,6 +34,11 @@ public class WindowsClipboard : IClipboard
         { 16, "CF_LOCALE" },
         { 17, "CF_DIBV5" },
     };
+
+    /// <summary>
+    /// Last clipboard data that was monitored.
+    /// </summary>
+    private ClipboardData? _lastClipboardData;
     
     /// <summary>
     /// Reads the current clipboard.
@@ -198,6 +203,9 @@ public class WindowsClipboard : IClipboard
             }
             CloseClipboard();
         }
+        
+        // Read the current clipboard to avoid loopback.
+        this._lastClipboardData = await this.ReadClipboardAsync();
     }
 
     /// <summary>
@@ -207,7 +215,7 @@ public class WindowsClipboard : IClipboard
     public async Task MonitorClipboardChangesAsync(ClientConnection clientConnection)
     {
         // Get the initial clipboard.
-        var lastClipboard = await this.ReadClipboardAsync(LogLevel.Trace);
+        this._lastClipboardData = await this.ReadClipboardAsync(LogLevel.Trace);
         
         // Run a busy-wait loop to check the clipboard.
         // This isn't optimal, but avoids needing to create a window.
@@ -222,9 +230,9 @@ public class WindowsClipboard : IClipboard
                 // Read the clipboard.
                 var currentClipboard = await this.ReadClipboardAsync(LogLevel.Trace);
                 if (currentClipboard == null) continue;
-                if (lastClipboard != null && lastClipboard.MimeType == currentClipboard.MimeType && currentClipboard.Data.SequenceEqual(lastClipboard.Data)) continue;
+                if (this._lastClipboardData != null && this._lastClipboardData.MimeType == currentClipboard.MimeType && currentClipboard.Data.SequenceEqual(this._lastClipboardData.Data)) continue;
                 Logger.Debug($"Clipboard change detected. Sending clipboard contents with MIME type {currentClipboard.MimeType}.");
-                lastClipboard = currentClipboard;
+                this._lastClipboardData = currentClipboard;
 
                 // Send the updated clipboard.
                 await clientConnection.SendClipboardAsync();
