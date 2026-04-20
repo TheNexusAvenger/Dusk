@@ -62,8 +62,8 @@ public class ServerDomainConnection : BaseConnection
         if (packet.Type == PacketData.PacketType.UpdateClipboard)
         {
             // Return if the clipboard is the same.
-            Logger.Info($"Replicating clipboard in domain {this.ServerDomain.Name} from connection {this.Id}.");
             var updateClipboardPacket = UpdateClipboardPacket.FromPacket(packet);
+            Logger.Info($"Replicating clipboard in domain {this.ServerDomain.Name} from connection {this.Id} (MIME type \"{updateClipboardPacket.MimeType}\")");
             var lastClipboardData = this.ServerDomain.LastClipboardData;
             if (lastClipboardData != null && lastClipboardData.MimeType == updateClipboardPacket.MimeType && lastClipboardData.Data.SequenceEqual(updateClipboardPacket.Data))
             {
