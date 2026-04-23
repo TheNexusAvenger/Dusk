@@ -162,7 +162,7 @@ public class WindowsClipboard : IClipboard
                 Logger.Warn($"Unsupported MIME type: {data.MimeType}");
                 data.Data = Encoding.UTF8.GetBytes($"Unsupported MIME type: {data.MimeType}");
                 clipboardWriter =
-                    WindowsClipboardWriters.ClipboardWriters.FirstOrDefault(entry => entry.MimeType == "text/plain;charset=utf-8");
+                    WindowsClipboardWriters.ClipboardWriters.FirstOrDefault(entry => entry.MimeType.StartsWith("text"));
             }
             
             // Convert the data if the writer has a converter.
