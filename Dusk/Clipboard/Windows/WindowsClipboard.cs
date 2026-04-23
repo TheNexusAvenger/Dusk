@@ -36,6 +36,16 @@ public class WindowsClipboard : IClipboard
     };
 
     /// <summary>
+    /// Type of the message for unsupported formats.
+    /// </summary>
+    private static readonly string UnsupportedFormatType = "text/plain;charset=utf-8";
+
+    /// <summary>
+    /// Start of the message for unsupported formats.
+    /// </summary>
+    private static readonly string UnsupportedFormatMessage = "[Dusk] Unsupported formats:";
+
+    /// <summary>
     /// Last clipboard data that was monitored.
     /// </summary>
     private ClipboardData? _lastClipboardData;
@@ -72,8 +82,8 @@ public class WindowsClipboard : IClipboard
                 }
                 return new ClipboardData()
                 {
-                    MimeType = "text/plain;charset=utf-8",
-                    Data = Encoding.UTF8.GetBytes($"Unsupported formats: {clipboardFormatsString}"),
+                    MimeType = UnsupportedFormatType,
+                    Data = Encoding.UTF8.GetBytes($"${UnsupportedFormatMessage} {clipboardFormatsString}"),
                 };
             }
             
@@ -231,10 +241,16 @@ public class WindowsClipboard : IClipboard
                 var currentClipboard = await this.ReadClipboardAsync(LogLevel.Trace);
                 if (currentClipboard == null) continue;
                 if (this._lastClipboardData != null && this._lastClipboardData.MimeType == currentClipboard.MimeType && currentClipboard.Data.SequenceEqual(this._lastClipboardData.Data)) continue;
-                Logger.Debug($"Clipboard change detected. Sending clipboard contents with MIME type {currentClipboard.MimeType}.");
                 this._lastClipboardData = currentClipboard;
 
+                // Ignore the clipboard if "Unsupported format" was set.
+                if (currentClipboard.MimeType == UnsupportedFormatType && Encoding.UTF8.GetString(currentClipboard.Data).StartsWith(UnsupportedFormatMessage)) {
+                    Logger.Debug("Ignoring clipboard change loopback due to unsupported format.");
+                    continue;
+                }
+                
                 // Send the updated clipboard.
+                Logger.Debug($"Clipboard change detected. Sending clipboard contents with MIME type {currentClipboard.MimeType}.");
                 await clientConnection.SendClipboardAsync();
             }
             catch (Exception e)
