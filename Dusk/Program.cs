@@ -33,9 +33,10 @@ public class Program
             while (true)
             {
                 // Run the connection.
+                ClientConnection? connection = null;
                 try
                 {
-                    var connection = await ClientConnection.ConnectAsync();
+                    connection = await ClientConnection.ConnectAsync();
                     pipeServer.CurrentConnection = connection;
                     var clipboardTask = IClipboard.GetClipboard().MonitorClipboardChangesAsync(connection);
                     var connectionTask = connection.StartAsync();
@@ -44,6 +45,10 @@ public class Program
                 catch (Exception e)
                 {
                     Logger.Error($"Connection closed: {e}");
+                }
+                finally
+                {
+                    connection?.Close();
                 }
                 
                 // Automatically reconnect after 5 seconds.
