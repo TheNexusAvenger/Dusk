@@ -195,12 +195,13 @@ public class LinuxClipboard : IClipboard
 
         // Wait for the paste process to exist.
         await process.WaitForExitAsync();
+        var output = outputMemoryStream.ToArray().Concat(errorMemoryStream.ToArray()).ToArray();
         if (process.ExitCode != 0 && !arguments.Contains("--list-types"))
         {
-            Logger.Warn($"wl-paste exited with code {process.ExitCode}.");
+            Logger.Warn($"wl-paste exited with code {process.ExitCode}. Output:\n{Encoding.UTF8.GetString(output)}");
         }
         
         // Return the output.
-        return outputMemoryStream.ToArray().Concat(errorMemoryStream.ToArray()).ToArray();
+        return output;
     }
 }
